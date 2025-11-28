@@ -3,6 +3,7 @@ package truthbeam
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -38,6 +39,7 @@ func newTruthBeamProcessor(conf component.Config, set processor.Settings) (*trut
 }
 
 func (t *truthBeamProcessor) processLogs(ctx context.Context, ld plog.Logs) (plog.Logs, error) {
+	fmt.Println("Test123")
 	rl := ld.ResourceLogs()
 	for i := 0; i < rl.Len(); i++ {
 		rs := rl.At(i)
