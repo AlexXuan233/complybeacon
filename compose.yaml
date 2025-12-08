@@ -17,6 +17,9 @@ services:
       - GF_AUTH_BASIC_ENABLED=false
     ports:
       - "3000:3000/tcp"
+    volumes:
+      - ./hack/demo/grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:Z
+      - ./hack/demo/grafana/dashboards:/var/lib/grafana/dashboards:Z
     entrypoint:
       - sh
       - -euc
@@ -54,12 +57,12 @@ services:
       - "8081:8081"
 
   collector:
-    environment:
-      - AWS_REGION=${AWS_REGION}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - S3_BUCKETNAME=${S3_BUCKETNAME}
-      - S3_OBJ_DIR=${S3_OBJ_DIR}
+#    environment:
+#      - AWS_REGION=${AWS_REGION}
+#      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+#      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+#      - S3_BUCKETNAME=${S3_BUCKETNAME}
+#      - S3_OBJ_DIR=${S3_OBJ_DIR}
     image: ghcr.io/complytime/complybeacon-beacon-distro:latest
     build:
       context: ./beacon-distro
