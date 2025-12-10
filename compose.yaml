@@ -17,9 +17,6 @@ services:
       - GF_AUTH_BASIC_ENABLED=false
     ports:
       - "3000:3000/tcp"
-    volumes:
-      - ./hack/demo/grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:Z
-      - ./hack/demo/grafana/dashboards:/var/lib/grafana/dashboards:Z
     entrypoint:
       - sh
       - -euc
