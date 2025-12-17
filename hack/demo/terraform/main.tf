@@ -159,6 +159,9 @@ resource "grafana_dashboard" "compliance_evidence" {
           refId        = "A"
         }]
         options = {
+          "displayLabels": [
+            "percent"
+          ],
           legend = {
             displayMode = "table"
             placement   = "right"
@@ -185,7 +188,38 @@ resource "grafana_dashboard" "compliance_evidence" {
             }
             mappings = []
           }
-          overrides = []
+          overrides = [
+            {
+              matcher = {
+                id      = "byName"
+                options = "Passed"
+              }
+              properties = [
+                {
+                  id = "color"
+                  value = {
+                    fixedColor = "green"
+                    mode       = "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              matcher = {
+                id      = "byName"
+                options = "Failed"
+              }
+              properties = [
+                {
+                  id = "color"
+                  value = {
+                    fixedColor = "red"
+                    mode       = "fixed"
+                  }
+                }
+              ]
+            }
+          ]
         }
       },
       # Panel 3: Evaluation Results Summary (Table)
@@ -542,168 +576,9 @@ resource "grafana_dashboard" "compliance_evidence" {
           overrides = []
         }
       },
-      # Panel 7: Recent Evidence Records (Table)
+      # Panel 7: Evidence Logs (Raw)
       {
         id = 7
-        title = "Recent Evidence Records"
-        type = "table"
-        gridPos = {
-          h = 10
-          w = 24
-          x = 0
-          y = 24
-        }
-        datasource = {
-          type = "loki"
-          uid  = grafana_data_source.loki.uid
-        }
-        pluginVersion = "11.6.0"
-        targets = [{
-          datasource = {
-            type = "loki"
-            uid  = grafana_data_source.loki.uid
-          }
-          editorMode = "code"
-          expr       = "{service_name=~\".+\"} | json | line_format \"{{.policy_rule_id}}|{{.policy_engine_name}}|{{.policy_evaluation_result}}|{{.status}}|{{.severity}}\""
-          queryType  = "range"
-          refId      = "A"
-        }]
-        options = {
-          showHeader = true
-          cellHeight = "sm"
-          footer = {
-            show      = false
-            reducer   = ["sum"]
-            countRows = false
-            fields    = ""
-          }
-          sortBy = [
-            {
-              displayName = "Time"
-              desc        = true
-            }
-          ]
-        }
-        transformations = [
-          {
-            id = "extractFields"
-            options = {
-              format = "auto"
-              source = "Line"
-            }
-          },
-          {
-            id = "organize"
-            options = {
-              excludeByName = {
-                id     = true
-                labels = true
-                tsNs   = true
-                Line   = true
-              }
-              indexByName = {
-                Time                     = 0
-                policy_rule_id           = 1
-                policy_engine_name       = 2
-                policy_evaluation_result = 3
-                status                   = 4
-                severity                 = 5
-              }
-              renameByName = {
-                Time                     = "Timestamp"
-                policy_rule_id           = "Policy Rule ID"
-                policy_engine_name       = "Policy Engine"
-                policy_evaluation_result = "Evaluation Result"
-                status                   = "Status"
-                severity                 = "Severity"
-              }
-            }
-          },
-          {
-            id = "limit"
-            options = {
-              limitField = 100
-            }
-          }
-        ]
-        fieldConfig = {
-          defaults = {
-            color = {
-              mode = "thresholds"
-            }
-            custom = {
-              align = "auto"
-              cellOptions = {
-                type = "auto"
-              }
-              inspect = false
-            }
-            mappings = []
-            thresholds = {
-              mode = "absolute"
-              steps = [
-                {
-                  color = "green"
-                  value = null
-                }
-              ]
-            }
-          }
-          overrides = [
-            {
-              matcher = {
-                id      = "byName"
-                options = "policy_evaluation_result"
-              }
-              properties = [
-                {
-                  id = "mappings"
-                  value = [
-                    {
-                      type = "value"
-                      options = {
-                        Passed = {
-                          color = "green"
-                          index = 0
-                        }
-                        Failed = {
-                          color = "red"
-                          index = 1
-                        }
-                        "Not Run" = {
-                          color = "blue"
-                          index = 2
-                        }
-                        "Needs Review" = {
-                          color = "yellow"
-                          index = 3
-                        }
-                        "Not Applicable" = {
-                          color = "text"
-                          index = 4
-                        }
-                        Unknown = {
-                          color = "orange"
-                          index = 5
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  id = "custom.cellOptions"
-                  value = {
-                    type = "color-background"
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      },
-      # Panel 8: Evidence Logs (Raw)
-      {
-        id = 8
         title = "Evidence Logs (Raw)"
         type = "logs"
         gridPos = {
@@ -739,4 +614,158 @@ resource "grafana_dashboard" "compliance_evidence" {
       }
     ]
   })
+}
+
+# Folder for organizing compliance alert rules
+resource "grafana_folder" "compliance_alerts" {
+  title = "Compliance Alerts"
+}
+
+# Slack contact point for alert notifications
+resource "grafana_contact_point" "slack_compliance" {
+  name = "Slack - Compliance Team"
+
+  slack {
+    url                      = var.slack_webhook_url
+    disable_resolve_message  = true
+
+    text = <<-EOT
+:fire: *ALERT FIRING - Policy Evaluation Failures*
+
+*Summary:* {{ .CommonAnnotations.summary }}
+*Description:* {{ .CommonAnnotations.description }}
+
+*Dashboard:* {{ .CommonAnnotations.dashboard_url }}
+{{ range .Alerts -}}
+{{ if .Values.B }}
+*Failed Count:* {{ .Values.B }}
+{{ end -}}
+{{ end -}}
+
+*Query to view failed logs in Grafana:*
+{service_name=~".+"} | json | policy_evaluation_result="Failed"
+    EOT
+
+    title       = "ComplyBeacon Alert"
+    username    = "ComplyBeacon"
+    icon_emoji  = ":warning:"
+  }
+}
+
+# Notification policy for routing alerts to Slack
+resource "grafana_notification_policy" "compliance_alerts" {
+  group_by      = ["alertname"]
+  contact_point = grafana_contact_point.slack_compliance.name
+
+  group_wait      = "30s"
+  group_interval  = "5m"
+  repeat_interval = "4h"
+
+  policy {
+    matcher {
+      label = "team"
+      match = "="
+      value = "compliance"
+    }
+    contact_point   = grafana_contact_point.slack_compliance.name
+    group_by        = ["alertname"]
+    group_wait      = "30s"
+    group_interval  = "5m"
+    repeat_interval = "4h"
+  }
+}
+
+# Alert rule group for policy failure detection
+resource "grafana_rule_group" "policy_failures" {
+  name = "Policy Failure Detection"
+  folder_uid = grafana_folder.compliance_alerts.uid
+  # Convert alert_evaluation_interval from "1m" to seconds
+  interval_seconds = tonumber(replace(replace(var.alert_evaluation_interval, "m", ""), "s", "")) * (can(regex("m$", var.alert_evaluation_interval)) ? 60 : 1)
+
+  rule {
+    name      = "Policy Evaluation Failures"
+    condition = "C"
+    for       = var.alert_for_duration
+
+    # Query A: Count failed logs
+    data {
+      ref_id = "A"
+      relative_time_range {
+        from = 300
+        to   = 0
+      }
+      datasource_uid = grafana_data_source.loki.uid
+      model = jsonencode({
+        editorMode = "code"
+        expr       = "sum(count_over_time({service_name=~\".+\"} | json | policy_evaluation_result=\"Failed\" [5m]))"
+        queryType  = "range"
+        refId      = "A"
+      })
+    }
+
+    # Query B: Reduce to single value
+    data {
+      ref_id = "B"
+      relative_time_range {
+        from = 300
+        to   = 0
+      }
+      datasource_uid = "__expr__"
+      model = jsonencode({
+        expression = "A"
+        reducer    = "last"
+        type       = "reduce"
+        refId      = "B"
+      })
+    }
+
+    # Query C: Threshold - trigger if failures exceed threshold
+    data {
+      ref_id = "C"
+      relative_time_range {
+        from = 300
+        to   = 0
+      }
+      datasource_uid = "__expr__"
+      model = jsonencode({
+        conditions = [
+          {
+            evaluator = {
+              params = [var.alert_failure_threshold - 1]
+              type   = "gt"
+            }
+            operator = {
+              type = "and"
+            }
+            query = {
+              params = ["B"]
+            }
+            type = "query"
+          }
+        ]
+        datasource = {
+          type = "grafana"
+          uid  = "__expr__"
+        }
+        expression = "B"
+        refId      = "C"
+        type       = "threshold"
+      })
+    }
+
+    annotations = {
+      summary       = "Policy evaluation failures detected"
+      description   = "One or more policy evaluations have failed. Check the Compliance Evidence Dashboard for details."
+      dashboard_url = "${var.grafana_url}/d/compliance-evidence"
+    }
+
+    labels = {
+      team     = "compliance"
+      severity = "critical"
+      service  = "complybeacon"
+    }
+
+    no_data_state  = "NoData"
+    exec_err_state = "Alerting"
+  }
 }

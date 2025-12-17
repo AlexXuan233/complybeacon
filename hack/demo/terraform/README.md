@@ -340,8 +340,7 @@ The Compliance Evidence Dashboard includes 8 panels:
 4. **Policy Evaluation Over Time** - Time series graph with stacked bars
 5. **Evidence by Policy Engine** - Donut chart breakdown
 6. **Evidence by Policy Rule** - Donut chart breakdown
-7. **Recent Evidence Records** - Table of recent evidence (last 100)
-8. **Evidence Logs (Raw)** - Raw log viewer
+7. **Evidence Logs (Raw)** - Raw log viewer
 
 ### Drift Detection
 
@@ -621,21 +620,6 @@ terraform-apply:
 ---
 
 ## Troubleshooting
-
-### Authentication Issues
-
-**Error: Authentication failed**
-
-```bash
-# Test Grafana connection
-curl -u admin:admin http://localhost:3000/api/health
-
-# Verify credentials are correct
-terraform plan -var="grafana_auth=admin:admin"
-
-# Check environment variables
-echo $TF_VAR_grafana_auth
-```
 
 ### Dashboard Not Appearing
 

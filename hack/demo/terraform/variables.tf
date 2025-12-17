@@ -16,3 +16,28 @@ variable "loki_url" {
   type        = string
   default     = "http://loki:3100"
 }
+
+variable "slack_webhook_url" {
+  description = "Slack incoming webhook URL for alert notifications"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "alert_evaluation_interval" {
+  description = "How often to evaluate alert rules (e.g., '1m', '5m')"
+  type        = string
+  default     = "1m"
+}
+
+variable "alert_for_duration" {
+  description = "Duration condition must be true before firing (e.g., '5m')"
+  type        = string
+  default     = "2m"
+}
+
+variable "alert_failure_threshold" {
+  description = "Minimum number of failed policy evaluations to trigger alert"
+  type        = number
+  default     = 1
+}

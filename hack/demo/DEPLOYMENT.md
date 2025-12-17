@@ -93,8 +93,7 @@ The Compliance Evidence Dashboard includes:
 4. Policy Evaluation Over Time (time series)
 5. Evidence by Policy Engine (donut chart)
 6. Evidence by Policy Rule (donut chart)
-7. Recent Evidence Records (table)
-8. Evidence Logs (raw logs)
+7. Evidence Logs (raw logs)
 
 ## Common Commands
 
@@ -123,16 +122,6 @@ terraform destroy
 cd hack/demo/terraform
 terraform state list
 terraform apply
-```
-
-### Authentication errors
-
-```bash
-# Test connection
-curl -u admin:admin http://localhost:3000/api/health
-
-# Verify credentials
-echo $TF_VAR_grafana_auth
 ```
 
 ### State issues
