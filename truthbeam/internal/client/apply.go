@@ -16,6 +16,8 @@ import (
 func ApplyAttributes(ctx context.Context, client *Client, serverURL string, _ pcommon.Resource, logRecord plog.LogRecord) error {
 	attrs := logRecord.Attributes()
 
+	fmt.Printf("attrs before enrich: %v \n", attrs)
+
 	// Retrieve lookup attributes
 	var missingAttrs []string
 
@@ -53,6 +55,8 @@ func ApplyAttributes(ctx context.Context, client *Client, serverURL string, _ pc
 		return err
 	}
 
+	fmt.Printf("enrich response: %v \n", enrichRes)
+
 	// Add enrichment status
 	attrs.PutStr(COMPLIANCE_ENRICHMENT_STATUS, string(enrichRes.Compliance.EnrichmentStatus))
 
@@ -78,6 +82,8 @@ func ApplyAttributes(ctx context.Context, client *Client, serverURL string, _ pc
 			newStd.SetStr(std)
 		}
 	}
+
+	fmt.Printf("attrs after enrich: %v \n", attrs)
 
 	return nil
 }
