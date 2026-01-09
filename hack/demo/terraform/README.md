@@ -11,8 +11,6 @@ Complete guide for managing Grafana dashboards using Infrastructure as Code (Ter
 5. [Production Deployment](#production-deployment)
 6. [Dashboard Management](#dashboard-management)
 7. [Advanced Features](#advanced-features)
-8. [CI/CD Integration](#cicd-integration)
-9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -292,33 +290,6 @@ export TF_VAR_grafana_auth="YOUR_API_KEY_HERE"
 terraform apply
 ```
 
-### Remote State Management
-
-For production, use remote state storage:
-
-**S3 Backend:**
-```hcl
-terraform {
-  backend "s3" {
-    bucket = "my-terraform-state"
-    key    = "grafana/dashboards/terraform.tfstate"
-    region = "us-east-1"
-  }
-}
-```
-
-**Terraform Cloud:**
-```hcl
-terraform {
-  cloud {
-    organization = "my-org"
-    workspaces {
-      name = "grafana-dashboards"
-    }
-  }
-}
-```
-
 ---
 
 ## Dashboard Management
@@ -362,15 +333,16 @@ resource "grafana_dashboard" "compliance_evidence" {
 
 ### Dashboard Panels
 
-The Compliance Evidence Dashboard includes 7 panels:
+The Compliance Evidence Dashboard includes 8 panels:
 
 1. **Total Evidence Records** - Stat panel showing total evidence count
-2. **Policy Evaluation Results** - Pie chart of evaluation results
-3. **Evaluation Results Summary** - Table view with color coding
-4. **Policy Evaluation Over Time** - Time series graph with stacked bars
-5. **Evidence by Policy Engine** - Donut chart breakdown
-6. **Evidence by Policy Rule** - Donut chart breakdown
-7. **Evidence Logs (Raw)** - Raw log viewer
+2. **Policy Evaluation Over Time** - Time series graph with stacked bars (Passed/Failed/Unknown)
+3. **Evidence by Policy Engine** - Donut chart breakdown by policy engine
+4. **Evidence by Policy Rule** - Donut chart breakdown by policy rule
+5. **Evidence Count by Control (Real-time)** - Time series showing evidence rate per control
+6. **Total Evidence Count by Control** - Stat panel showing total count per control
+7. **Control Health: Evidence by Result** - Pie chart of evaluation results (Passed/Failed/Not Run/Needs Review)
+8. **Control Health: Assessment Requirements and Evidence Count per Control ID** - Table showing control IDs with assessment requirements and evidence counts
 
 ### Drift Detection
 
@@ -516,74 +488,6 @@ resource "grafana_dashboard" "app" {
 ```
 
 If you recreate the datasource, the dashboard automatically gets the new UID!
-
----
-
-## CI/CD Integration
-
-### GitHub Actions Example
-
-```yaml
-# .github/workflows/deploy-dashboards.yml
-name: Deploy Grafana Dashboards
-
-on:
-  push:
-    branches: [main]
-    paths:
-      - 'hack/demo/terraform/*.tf'
-
-jobs:
-  terraform:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-
-      - name: Terraform Init
-        run: terraform init
-        working-directory: hack/demo/terraform
-
-      - name: Terraform Plan
-        run: terraform plan
-        working-directory: hack/demo/terraform
-        env:
-          TF_VAR_grafana_url: ${{ secrets.GRAFANA_URL }}
-          TF_VAR_grafana_auth: ${{ secrets.GRAFANA_API_KEY }}
-          TF_VAR_loki_url: ${{ vars.LOKI_URL }}
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-        working-directory: hack/demo/terraform
-        env:
-          TF_VAR_grafana_url: ${{ secrets.GRAFANA_URL }}
-          TF_VAR_grafana_auth: ${{ secrets.GRAFANA_API_KEY }}
-          TF_VAR_loki_url: ${{ vars.LOKI_URL }}
-```
-
-### Required Secrets
-
-Add these to your repository:
-- `GRAFANA_URL`: Grafana server URL (e.g., https://grafana.example.com)
-- `GRAFANA_API_KEY`: Grafana API key or admin:password
-- `LOKI_URL` (as variable): Loki server URL
-
----
-
-## Troubleshooting
-
-### Debugging Terraform
-
-Enable debug logging:
-
-```bash
-export TF_LOG=DEBUG
-export TF_LOG_PATH=./terraform-debug.log
-terraform apply
-```
 
 ---
 
