@@ -41,6 +41,9 @@ processors:
           - set(time, observed_time) where time_unix_nano == 0
           # Extract policy.rule.id from OCSF policy.uid field
           - set(attributes["policy.rule.id"], ParseJSON(body)["policy"]["uid"]) where ParseJSON(body)["policy"]["uid"] != nil
+          # Extract control ID from policy.data JSON string (for OSPS Baseline controls)
+          # The policy.data field contains JSON with sources[0].name as the control ID (e.g., "OSPS-QA-05.01")
+          - set(attributes["policy.rule.id"], ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["name"]) where ParseJSON(body)["policy"]["data"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["name"] != nil
           # Extract policy.engine.name from OCSF metadata.product.name field
           - set(attributes["policy.engine.name"], ParseJSON(body)["metadata"]["product"]["name"]) where ParseJSON(body)["metadata"]["product"]["name"] != nil
           # Extract policy.evaluation.result from OCSF status field (mapped to Compass enum values)
@@ -53,13 +56,43 @@ processors:
           # Set default Unknown if status is not recognized
           - set(attributes["policy.evaluation.result"], "Unknown") where ParseJSON(body)["status"] != nil and attributes["policy.evaluation.result"] == nil
 
+connectors:
+  # SignalToMetrics connector converts enriched logs into control health metrics
+  # It acts as both an exporter (from logs pipeline) and receiver (to metrics pipeline)
+  # Log attributes are automatically included as metric labels
+  signaltometrics:
+    logs:
+      # Control evaluation count metric - tracks total evaluations per control
+      # Attributes from logs (control_id, result, status) automatically become metric labels
+      - name: compliance.control.evaluations
+        description: "Total number of control evaluations"
+        unit: "1"
+        sum:
+          value: "1"
+      # Control pass/fail status metric - counts by result type
+      - name: compliance.control.evaluation.result
+        description: "Count of control evaluations by result (Passed/Failed/etc)"
+        unit: "1"
+        sum:
+          value: "1"
+      # Control compliance status metric - tracks compliance status distribution
+      - name: compliance.control.status
+        description: "Count of control evaluations by compliance status"
+        unit: "1"
+        sum:
+          value: "1"
+
 exporters:
   debug:
     verbosity: detailed
+  # Loki exporter for logs - keep existing functionality
   otlphttp/logs:
     endpoint: "http://loki:3100/otlp"
     tls:
       insecure: true
+  # Note: Loki doesn't support OTLP metrics endpoint
+  # Metrics from signaltometrics are used internally, but visualization queries enriched logs directly
+  # AWS S3 exporter for logs - keep existing functionality
   awss3/logs:
     s3uploader:
       region: ${AWS_REGION}
@@ -73,11 +106,21 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [debug]
+    # Metrics pipeline for control health metrics generated from logs
+    # Note: Metrics are not exported to Loki (Loki doesn't support OTLP metrics endpoint)
+    # Instead, query the enriched logs directly from Loki using LogQL
+    # signaltometrics generates metrics internally for processing, but visualization uses enriched logs
+    metrics/control_health:
+      receivers: [signaltometrics]
+      processors: [batch]
+      exporters: [debug]
+    # Direct metrics pipeline (for any metrics received via OTLP)
     metrics:
       receivers: [otlp]
       processors: [batch]
       exporters: [debug]
+    # Logs pipeline - enriched logs are exported to both storage and metrics connector
     logs/analysis_pipeline:
       receivers: [webhookevent, otlp]
       processors: [batch, transform/ocsf, truthbeam]
-      exporters: [debug, otlphttp/logs, awss3/logs]
+      exporters: [debug, otlphttp/logs, awss3/logs, signaltometrics]
