@@ -16,9 +16,3 @@ variable "loki_url" {
   type        = string
   default     = "http://loki:3100"
 }
-
-variable "prometheus_url" {
-  description = "Prometheus server URL"
-  type        = string
-  default     = "http://prometheus:9090"
-}

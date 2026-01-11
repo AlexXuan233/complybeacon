@@ -27,8 +27,10 @@ processors:
         statements:
           - set(observed_time, Now()) where observed_time_unix_nano == 0
           - set(time, observed_time) where time_unix_nano == 0
-          # Extract policy.rule.id from OCSF policy.uid field
+          # Extract policy.rule.id from OCSF policy.uid field (fallback)
           - set(attributes["policy.rule.id"], ParseJSON(body)["policy"]["uid"]) where ParseJSON(body)["policy"]["uid"] != nil
+          # Extract control ID from policy.data.sources[0].name (OSPS Baseline controls)
+          - set(attributes["policy.rule.id"], ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["name"]) where ParseJSON(body)["policy"]["data"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["name"] != nil
           # Extract policy.engine.name from OCSF metadata.product.name field
           - set(attributes["policy.engine.name"], ParseJSON(body)["metadata"]["product"]["name"]) where ParseJSON(body)["metadata"]["product"]["name"] != nil
           # Extract policy.evaluation.result from OCSF status field (mapped to Compass enum values)
@@ -41,9 +43,37 @@ processors:
           # Set default Unknown if status is not recognized
           - set(attributes["policy.evaluation.result"], "Unknown") where ParseJSON(body)["status"] != nil and attributes["policy.evaluation.result"] == nil
 
+connectors:
+  # SignalToMetrics: converts enriched logs to metrics (exporter from logs, receiver to metrics)
+  signaltometrics:
+    logs:
+      # Control evaluation count metric
+      - name: compliance.control.evaluations
+        description: "Total number of control evaluations"
+        unit: "1"
+        sum:
+          value: "1"
+      # Control evaluation result metric
+      - name: compliance.control.evaluation.result
+        description: "Count of control evaluations by result (Passed/Failed/etc)"
+        unit: "1"
+        sum:
+          value: "1"
+      # Control compliance status metric
+      - name: compliance.control.status
+        description: "Count of control evaluations by compliance status"
+        unit: "1"
+        sum:
+          value: "1"
+
 exporters:
   debug:
     verbosity: detailed
+  # OTLP HTTP exporter for metrics to Loki
+  otlphttp/metrics:
+    endpoint: "http://loki:3100/otlp"
+    tls:
+      insecure: true
 
 service:
   pipelines:
@@ -51,11 +81,18 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [debug]
+    # Metrics pipeline: SignalToMetrics -> Loki
+    metrics/control_health:
+      receivers: [signaltometrics]
+      processors: [batch]
+      exporters: [otlphttp/metrics, debug]
+    # Direct metrics pipeline (for any metrics received via OTLP)
     metrics:
-      receivers: [ otlp ]
-      processors: [ batch ]
-      exporters: [ debug ]
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    # Logs pipeline - enriched logs are exported to both storage and metrics connector
     logs:
-      receivers: [ otlp ]
-      processors: [ batch, transform/ocsf, truthbeam ]
-      exporters: [ debug ]
+      receivers: [otlp]
+      processors: [batch, transform/ocsf, truthbeam]
+      exporters: [debug, signaltometrics]
