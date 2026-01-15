@@ -38,7 +38,3 @@ data/
 hack/self-signed-cert/compass*
 hack/self-signed-cert/truthbeam*
 
-# testing with aws
-exportaws.sh
-
-

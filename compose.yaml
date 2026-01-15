@@ -74,5 +74,3 @@ services:
       - "8088:8088"
     depends_on:
       - compass
-
-# volumes:

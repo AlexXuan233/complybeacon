@@ -27,9 +27,9 @@ processors:
         statements:
           - set(observed_time, Now()) where observed_time_unix_nano == 0
           - set(time, observed_time) where time_unix_nano == 0
-          # Extract policy.rule.id from OCSF policy.uid field (fallback)
+          # Extract policy.rule.id from OCSF policy.uid field
           - set(attributes["policy.rule.id"], ParseJSON(body)["policy"]["uid"]) where ParseJSON(body)["policy"]["uid"] != nil
-          # Extract control ID from policy.data.sources[0].name (OSPS Baseline controls)
+          # Extract control ID from policy.data.sources[0].name
           - set(attributes["policy.rule.id"], ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["name"]) where ParseJSON(body)["policy"]["data"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["name"] != nil
           # Extract policy.engine.name from OCSF metadata.product.name field
           - set(attributes["policy.engine.name"], ParseJSON(body)["metadata"]["product"]["name"]) where ParseJSON(body)["metadata"]["product"]["name"] != nil
