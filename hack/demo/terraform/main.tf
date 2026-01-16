@@ -137,98 +137,6 @@ resource "grafana_dashboard" "compliance_evidence" {
           overrides = []
         }
       },
-      # Panel 2: Policy Evaluation Results (Pie Chart)
-      {
-        id    = 2
-        title = "Policy Evaluation Results"
-        type  = "piechart"
-        gridPos = {
-          h = 8
-          w = 9
-          x = 6
-          y = 0
-        }
-        datasource = {
-          type = "loki"
-          uid  = grafana_data_source.loki.uid
-        }
-        pluginVersion = "11.6.0"
-        targets = [{
-          datasource = {
-            type = "loki"
-            uid  = grafana_data_source.loki.uid
-          }
-          editorMode   = "code"
-          # Query enriched evidence logs (have policy_evaluation_result from truthbeam - signaltometrics logs don't have this)
-          expr         = "sum by (policy_evaluation_result) (count_over_time({service_name=~\".+\"} | json | policy_evaluation_result=~\".+\" [$__range]))"
-          legendFormat = "{{policy_evaluation_result}}"
-          queryType    = "range"
-          refId        = "A"
-        }]
-        options = {
-          "displayLabels" : [
-            "percent"
-          ],
-          legend = {
-            displayMode = "table"
-            placement   = "right"
-            showLegend  = true
-            values      = ["value"]
-          }
-          pieType = "pie"
-          tooltip = {
-            mode = "single"
-            sort = "none"
-          }
-        }
-        fieldConfig = {
-          defaults = {
-            color = {
-              mode = "palette-classic"
-            }
-            custom = {
-              hideFrom = {
-                tooltip = false
-                viz     = false
-                legend  = false
-              }
-            }
-            mappings = []
-          }
-          overrides = [
-            {
-              matcher = {
-                id      = "byName"
-                options = "Passed"
-              }
-              properties = [
-                {
-                  id = "color"
-                  value = {
-                    fixedColor = "green"
-                    mode       = "fixed"
-                  }
-                }
-              ]
-            },
-            {
-              matcher = {
-                id      = "byName"
-                options = "Failed"
-              }
-              properties = [
-                {
-                  id = "color"
-                  value = {
-                    fixedColor = "red"
-                    mode       = "fixed"
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      },
       # Panel 3: Evaluation Results Summary (Table)
       {
         id    = 3
@@ -236,8 +144,8 @@ resource "grafana_dashboard" "compliance_evidence" {
         type  = "table"
         gridPos = {
           h = 8
-          w = 9
-          x = 15
+          w = 18
+          x = 6
           y = 0
         }
         datasource = {
@@ -587,42 +495,6 @@ resource "grafana_dashboard" "compliance_evidence" {
           overrides = []
         }
       },
-      # Panel 7: Evidence Logs (Raw)
-      {
-        id    = 7
-        title = "Evidence Logs (Raw)"
-        type  = "logs"
-        gridPos = {
-          h = 12
-          w = 24
-          x = 0
-          y = 34
-        }
-        datasource = {
-          type = "loki"
-          uid  = grafana_data_source.loki.uid
-        }
-        targets = [{
-          datasource = {
-            type = "loki"
-            uid  = grafana_data_source.loki.uid
-          }
-          editorMode = "code"
-          expr       = "{service_name=~\".+\"}"
-          queryType  = "range"
-          refId      = "A"
-        }]
-        options = {
-          dedupStrategy      = "none"
-          enableLogDetails   = true
-          prettifyLogMessage = true
-          showCommonLabels   = false
-          showLabels         = false
-          showTime           = true
-          sortOrder          = "Descending"
-          wrapLogMessage     = false
-        }
-      },
       # Panel 8: Evidence Count by Control (Real-time)
       {
         id    = 8
@@ -821,8 +693,8 @@ resource "grafana_dashboard" "compliance_evidence" {
                   }
                 }
               ]
-            },
-            {
+                },
+                {
               matcher = {
                 id      = "byRegexp"
                 options = ".*Failed.*"
@@ -836,8 +708,8 @@ resource "grafana_dashboard" "compliance_evidence" {
                   }
                 }
               ]
-            },
-            {
+                },
+                {
               matcher = {
                 id      = "byRegexp"
                 options = ".*Not Run.*"
@@ -856,7 +728,7 @@ resource "grafana_dashboard" "compliance_evidence" {
               matcher = {
                 id      = "byRegexp"
                 options = ".*Needs Review.*"
-              }
+          }
               properties = [
                 {
                   id = "color"
@@ -877,9 +749,9 @@ resource "grafana_dashboard" "compliance_evidence" {
         type  = "table"
         gridPos = {
           h = 8
-          w = 24
+          w = 12
           x = 0
-          y = 110
+          y = 94
         }
         datasource = {
           type = "loki"
