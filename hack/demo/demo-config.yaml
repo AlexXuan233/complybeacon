@@ -71,10 +71,11 @@ processors:
         statements:
           - set(observed_time, Now()) where observed_time_unix_nano == 0
           - set(time, observed_time) where time_unix_nano == 0
-          # Extract policy.rule.id from OCSF policy.uid field
+          # Extract policy.rule.id from OCSF policy.uid field (procedure ID for Compass mapper lookup)
           - set(attributes["policy.rule.id"], ParseJSON(body)["policy"]["uid"]) where ParseJSON(body)["policy"]["uid"] != nil
-          # Extract control ID from policy.data.sources[0].name
-          - set(attributes["policy.rule.id"], ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["name"]) where ParseJSON(body)["policy"]["data"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["name"] != nil
+          # Extract control ID from policy.data.sources[0].name as a separate attribute (don't overwrite policy.rule.id)
+          # Note: policy.rule.id must match procedure.id in plan.yml for Compass mapper to work correctly
+          - set(attributes["policy.control.id"], ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["name"]) where ParseJSON(body)["policy"]["data"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["name"] != nil
           # Extract policy.data.config.include (first element of array) as attribute
           - set(attributes["policy.config.include"], ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["config"]["include"][0]) where ParseJSON(body)["policy"]["data"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["config"] != nil and ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["config"]["include"] != nil and Len(ParseJSON(ParseJSON(body)["policy"]["data"])["sources"][0]["config"]["include"]) > 0
           # Extract policy.engine.name from OCSF metadata.product.name field
