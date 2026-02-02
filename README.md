@@ -125,7 +125,7 @@ Once you've reviewed the **NOTE** above, follow these steps to deploy the infras
     ```
    
 3. **Enable grafana dashboard:**
-    If you want to enable pre-build grafana dashboard, refer to [README.md](./hack/demo/terraform/README.md)
+    If you want to configure loki as default datasource on grafana and enable pre-build grafana dashboard, refer to [README.md](./hack/demo/terraform/README.md)
 
 ## Project Design
 

@@ -13,7 +13,6 @@ provider "grafana" {
 }
 
 # Data source configuration
-# Note: These datasources are created by Docker Compose and imported into Terraform
 resource "grafana_data_source" "loki" {
   type       = "loki"
   name       = "Loki"
