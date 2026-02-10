@@ -91,6 +91,8 @@ processors:
           - set(attributes["policy.evaluation.result"], "Unknown") where ParseJSON(body)["status"] != nil and attributes["policy.evaluation.result"] == nil
           # Extract severity from OCSF evidence
           - set(attributes["severity"], ParseJSON(body)["severity"]) where ParseJSON(body)["severity"] != nil
+          # Set policy.rule.id as resource attribute for S3 partitioning
+          - set(resource.attributes["policy.rule.id"], attributes["policy.rule.id"]) where attributes["policy.rule.id"] != nil
 
 connectors:
   # SignalToMetrics: converts enriched logs to metrics (exporter from logs, receiver to metrics)
@@ -161,7 +163,11 @@ exporters:
       region: ${AWS_REGION}
       s3_bucket: ${S3_BUCKETNAME}
       s3_prefix: ${S3_OBJ_DIR}
+      unique_key_func_name: uuidv7
       s3_partition_format: ""
+      file_prefix: "evidence_"
+    resource_attrs_to_s3:
+      s3_prefix: "policy.rule.id"
 
 service:
   pipelines:

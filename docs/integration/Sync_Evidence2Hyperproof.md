@@ -97,7 +97,6 @@ Create new **`SecureString`** parameters in the AWS Systems Manager (SSM) Parame
 3.  **Configure IAM Execution Role:**
     * Attach the managed policy `AmazonS3ReadOnlyAccess` (to allow Lambda to read the evidence logs).
     * Create and attach an inline policy granting `ssm:GetParameter` and `kms:Decrypt` permission to read the specific SSM parameters (`/hyperproof/CLIENT_ID`, `/hyperproof/CLIENT_SECRET`).
-    * Create and attach an inline policy granting `s3:DeleteObject` and `s3:PutObject` permission because we need to rename S3 object filename. 
 
     _Example Policy snippet_
     ```json
@@ -108,9 +107,7 @@ Create new **`SecureString`** parameters in the AWS Systems Manager (SSM) Parame
           "Sid": "VisualEditor0",
           "Effect": "Allow",
           "Action": [
-            "s3:PutObject",
-            "s3:GetObject",
-            "s3:DeleteObject"
+            "s3:GetObject"
           ],
           "Resource": "arn:aws:s3:::alex-hyperproof-test/*"  
         }
