@@ -7,9 +7,8 @@
 # package located in a 'cmd/' subdirectory.
 #
 # Usage:
-#   make all         - Runs tests and then builds all binaries
+#   make all         - Runs tests for all modules
 #   make test        - Runs tests for all modules
-#   make build       - Builds all binaries and places them in the ./bin directory
 #   make clean       - Removes generated binaries and build artifacts
 #   make help        - Displays this help message
 # ==============================================================================
@@ -17,8 +16,7 @@
 # Define a list of your Go modules.
 # Add or remove modules here as your project evolves.
 # The path should be relative to the Makefile's location.
-MODULES := ./compass ./proofwatch ./truthbeam
-BUILD := ./compass
+MODULES := ./proofwatch ./truthbeam
 
 # The directory where the compiled binaries will be placed.
 BIN_DIR := bin
@@ -28,7 +26,7 @@ CERT_DIR := hack/self-signed-cert
 OPENSSL_CNF := $(CERT_DIR)/openssl.cnf
 
 # The default target. Running 'make' with no arguments will execute this.
-all: test build
+all: test
 
 # ------------------------------------------------------------------------------
 # Test Target
@@ -89,22 +87,6 @@ coverage-report: test ## Generate HTML coverage report and show summary
 	@echo "--- Coverage reports generated! ---"
 .PHONY: coverage-report
 
-# ------------------------------------------------------------------------------
-# Build Target
-# This assumes the main package is in a subdirectory named 'cmd/'.
-# ------------------------------------------------------------------------------
-build: ## Builds a binary for each module and places it in the $(BIN_DIR) directory.
-	@mkdir -p $(BIN_DIR)
-	@for m in $(BUILD); do \
-    		(cd $$m && go build -v -o ../$(BIN_DIR)/ ./cmd/... ); \
-    		if [ $$? -ne 0 ]; then \
-    			echo "Build failed for module: $$m"; \
-    			exit 1; \
-    		fi; \
-    done
-	@echo "--- All binaries built successfully ---"
-.PHONY: build
-
 
 clean: ## Removes all generated binaries and Go build caches.
 	@echo "--- Cleaning up build artifacts ---"
@@ -121,7 +103,7 @@ workspace: # Setup a go workspace with all modules
 # Demo
 #------------------------------------------------------------------------------
 
-generate-self-signed-cert: ## Generate self-signed certificates for compass and truthbeam
+generate-self-signed-cert: ## Generate self-signed certificates for compass (external service) and truthbeam
 	# remove all existing certs before generating new one
 	@find hack/self-signed-cert -mindepth 1 ! -name 'openssl.cnf' -delete
 	@echo "--- Generating self-signed certificates in $(CERT_DIR) ---"

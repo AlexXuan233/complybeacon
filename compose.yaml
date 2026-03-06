@@ -19,11 +19,11 @@ services:
       - "3000:3000/tcp"
 
   compass:
-    build:
-      context: .
-      dockerfile: ./compass/images/Containerfile.compass
+    # replace with local compass image when test, for example localhost/gemara-content-service:local
+    image: ghcr.io/complytime/gemara-content-service:latest
     restart: unless-stopped
     volumes:
+      # replace with local gemara-content-service repo path
       - ./hack/sampledata:/sampledata:Z
       - ./hack/demo/config.yaml:/config.yaml:Z
       # Development/Testing purpose

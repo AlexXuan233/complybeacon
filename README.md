@@ -28,13 +28,7 @@ A custom OpenTelemetry Collector processor that enriches log records with compli
 
 ### 4. Compass
 
-A central enrichment service that provides risk, threat, and compliance framework attributes based on policy lookup data.
-
-#### Supported Compass Mappers
-
-| Mapper  | Description                                        |
-|---------|----------------------------------------------------|
-| `basic` | Maps to the `gemara` model based on log attributes |
+A central enrichment service that provides risk, threat, and compliance framework attributes based on policy lookup data. Compass is maintained as a separate project at [gemara-content-service](https://github.com/complytime/gemara-content-service) and is consumed here as a pre-built container image (`ghcr.io/complytime/gemara-content-service`).
 
 ## Quick Start
 
@@ -113,7 +107,7 @@ B. **Comment collector.environment part of [compose.yml](compose.yaml)** as the 
 Once you've reviewed the **NOTE** above, follow these steps to deploy the infrastructure and test the pipeline.
 
 1. **Deploy the Stack:**
-    This command builds and starts the full infrastructure, including Grafana, Loki, the custom collector (`Beacon`), and the `Compass` service.
+    This command starts the full infrastructure, including Grafana, Loki, the custom collector (`Beacon`), and the `Compass` service (pulled from `ghcr.io/complytime/gemara-content-service` or local build).
     ```bash
     podman-compose up --build
     ```

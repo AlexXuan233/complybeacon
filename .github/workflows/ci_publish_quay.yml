@@ -73,28 +73,7 @@ jobs:
           GH_ACTOR: ${{ github.actor }}
         run: |
           echo "$TOKEN" | crane auth login ghcr.io -u "$GH_ACTOR" --password-stdin
-          for img in complybeacon-compass complybeacon-beacon-distro; do
-            crane tag "ghcr.io/complytime/${img}:${SOURCE_TAG}" "$DEST_TAG"
-          done
-
-  promote-compass:
-    name: Promote Compass
-    needs: [setup, tag-ghcr]
-    permissions:
-      packages: read
-    uses: complytime/org-infra/.github/workflows/reusable_publish_quay.yml@main
-    with:
-      source_registry: ghcr.io
-      source_image: complytime/complybeacon-compass
-      source_tag: ${{ needs.setup.outputs.source_tag }}
-      dest_registry: quay.io
-      dest_image: continuouscompliance/complytime-compass
-      dest_tag: ${{ needs.setup.outputs.dest_tag }}
-      allowed_identity_regex: https://github.com/complytime/org-infra(/.*)?
-      fail_if_dest_exists: ${{ inputs.force != true }}
-    secrets:
-      dest_username: ${{ secrets.QUAY_USERNAME }}
-      dest_password: ${{ secrets.QUAY_PASSWORD }}
+          crane tag "ghcr.io/complytime/complybeacon-beacon-distro:${SOURCE_TAG}" "$DEST_TAG"
 
   promote-beacon-distro:
     name: Promote Beacon Distro

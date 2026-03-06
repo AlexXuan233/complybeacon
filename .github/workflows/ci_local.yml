@@ -51,7 +51,7 @@ jobs:
           version: "${{ env.GOLANGCI_LINT_VERSION }}"
           working-directory: "${{ matrix.modules }}"
 
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -61,9 +61,6 @@ jobs:
 
       - name: Run all tests
         run: make test
-
-      - name: Build all binaries
-        run: make build
 
   weave-check:
     runs-on: ubuntu-latest
@@ -123,7 +120,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          for m in "./compass" "./proofwatch" "./truthbeam"; do
+          for m in "./proofwatch" "./truthbeam"; do
             (cd "${m}" && go mod download)
           done
 
