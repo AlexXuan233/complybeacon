@@ -25,9 +25,8 @@ It complements the [DESIGN.md](./DESIGN.md) document by focusing on the practica
   * [Debugging and Troubleshooting](#debugging-and-troubleshooting)
     * [Debugging Tools](#debugging-tools)
   * [Code Generation](#code-generation)
-    * [1. API Code Generation](#1-api-code-generation)
-    * [2. OpenTelemetry Semantic Conventions](#2-opentelemetry-semantic-conventions)
-    * [3. Manual Code Generation](#3-manual-code-generation)
+    * [1. OpenTelemetry Semantic Conventions](#1-opentelemetry-semantic-conventions)
+    * [2. Manual Code Generation](#2-manual-code-generation)
   * [Deployment and Demo](#deployment-and-demo)
     * [Local Development Demo](#local-development-demo)
   * [Additional Resources](#additional-resources)
@@ -77,8 +76,7 @@ make workspace
 ```
 
 This creates a `go.work` file that includes all project modules:
-- `./compass`
-- `./proofwatch` 
+- `./proofwatch`
 - `./truthbeam`
 
 ### 4. Install Dependencies
@@ -87,7 +85,7 @@ Dependencies are managed per module. Install them for all modules:
 
 ```bash
 # Install dependencies for all modules
-for module in compass proofwatch truthbeam; do
+for module in proofwatch truthbeam; do
     cd $module && go mod download && cd ..
 done
 ```
@@ -106,7 +104,6 @@ make build
 
 ```
 complybeacon/
-├── api.yaml                    # OpenAPI specification for Compass service
 ├── compose.yaml                # podman-compose configuration for demo environment
 ├── Makefile                    # Build automation
 ├── docs/                       # Documentation
@@ -116,11 +113,6 @@ complybeacon/
 ├── model/                      # OpenTelemetry semantic conventions
 │   ├── attributes.yaml        # Attribute definitions
 │   └── entities.yaml          # Entity definitions
-├── compass/                    # Compass service module
-│   ├── cmd/compass/           # Main application
-│   ├── api/                   # Generated API code
-│   ├── mapper/                # Enrichment mappers
-│   └── service/               # Business logic
 ├── proofwatch/                 # ProofWatch instrumentation library
 │   ├── attributes.go          # Attribute definitions
 │   ├── evidence.go            # Evidence types
@@ -148,7 +140,6 @@ complybeacon/
 make test
 
 # Run tests for specific module
-cd compass && go test -v ./...
 cd proofwatch && go test -v ./...
 cd truthbeam && go test -v ./...
 ```
@@ -197,32 +188,9 @@ go fmt ./...
 
 ### 2. Compass Development
 
-Compass is the enrichment service that provides compliance context.
+Compass is maintained as a separate project. See [gemara-content-service](https://github.com/complytime/gemara-content-service) for its source code, API specification, and contribution guidelines.
 
-**Key Files:**
-- `compass/cmd/compass/main.go` - Service entry point
-- `compass/service/service.go` - Business logic
-- `compass/mapper/` - Enrichment mappers
-- `api.yaml` - OpenAPI specification
-
-**Development Workflow:**
-```bash
-cd compass
-
-# Run the service locally
-go run ./cmd/compass --config hack/demo/config.yaml --catalog hack/sampledata/osps.yaml --port 8081 --skip-tls
-
-# Test the API
-curl -X POST http://localhost:8081/v1/metadata \
-  -H "Content-Type: application/json" \
-  -d '{"policy": {"policyEngineName": "OPA", "policyRuleId": "deny-root-user"}}'
-```
-
-**Adding New Mappers:**
-1. Create a new mapper in `compass/mapper/plugins/`
-2. Implement the `Mapper` interface
-3. Register the mapper in the factory
-4. Add configuration options
+In the ComplyBeacon demo stack, Compass runs as a pre-built container image (`ghcr.io/complytime/gemara-content-service:latest`) defined in `compose.yaml`.
 
 ### 3. TruthBeam Development
 
@@ -298,19 +266,7 @@ podman-compose logs -f collector
 
 The project uses several code generation tools:
 
-### 1. API Code Generation
-
-Generate Go code from OpenAPI specification:
-
-```bash
-make api-codegen
-```
-
-This generates:
-- `compass/api/types.gen.go` - Request/response types
-- `compass/api/server.gen.go` - Server interfaces
-
-### 2. OpenTelemetry Semantic Conventions
+### 1. OpenTelemetry Semantic Conventions
 
 Generate documentation and Go code from semantic convention models:
 
@@ -325,17 +281,11 @@ make weaver-codegen
 make weaver-check
 ```
 
-### 3. Manual Code Generation
+### 2. Manual Code Generation
 
-If you modify the OpenAPI spec or semantic conventions:
+If you modify the semantic conventions:
 
 ```bash
-# Update API spec
-vim api.yaml
-
-# Regenerate API code
-make api-codegen
-
 # Update semantic conventions
 vim model/attributes.yaml
 vim model/entities.yaml

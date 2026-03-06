@@ -3,8 +3,7 @@
 # Multi-stage security pipeline for building, scanning, and publishing container images.
 #
 # Pipeline Flow:
-#   scan-source → [build-compass, build-beacon-distro] →
-#   [scan-image-compass, scan-image-beacon-distro] → [sign-compass, sign-beacon-distro]
+#   scan-source → build-beacon-distro → scan-image-beacon-distro → sign-beacon-distro
 #
 # NOTE: Scorecard flags 'write' permissions but these are REQUIRED for image publishing
 # See: https://docs.github.com/en/actions/sharing-automations/reusing-workflows
@@ -66,28 +65,8 @@ jobs:
     secrets: inherit
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # STAGE 2: BUILD AND PUSH (parallel builds after source scan passes)
+  # STAGE 2: BUILD AND PUSH (after source scan passes)
   # ═══════════════════════════════════════════════════════════════════════════
-  build-compass:
-    name: Build Compass Image
-    needs: [scan-source]
-    permissions:
-      contents: read       # checkout source for build
-      packages: write      # push image to GHCR
-      id-token: write      # OIDC for registry auth
-      actions: read        # access reusable workflow
-      attestations: write  # publish build provenance
-    uses: complytime/org-infra/.github/workflows/reusable_publish_ghcr.yml@main
-    with:
-      component_name: compass
-      containerfile_path: compass/images/Containerfile.compass
-      context_path: .
-      image_name: complytime/complybeacon-compass
-      image_description: ComplyBeacon Compass service
-      image_vendor: ComplyTime
-      force_rebuild: ${{ inputs.force_rebuild || false }}
-    secrets: inherit
-
   build-beacon-distro:
     name: Build Beacon Distro Image
     needs: [scan-source]
@@ -112,25 +91,6 @@ jobs:
   # STAGE 3: POST-BUILD IMAGE SCANNING
   # ═══════════════════════════════════════════════════════════════════════════
   # Scans built images for OS package vulns, runtime deps, embedded secrets.
-  scan-image-compass:
-    name: Scan Compass Image
-    needs: [build-compass]
-    permissions:
-      contents: read          # reusable may checkout for config
-      packages: write         # pull image from GHCR
-      security-events: write  # upload SARIF results
-      id-token: write         # OIDC for registry auth
-      actions: read           # required by osv_scanner nested job
-    uses: complytime/org-infra/.github/workflows/reusable_vuln_scan.yml@main
-    with:
-      enable_osv: false
-      enable_trivy_source: false
-      enable_trivy_image: true
-      image_ref: ${{ needs.build-compass.outputs.image }}:sha-${{ github.sha }}
-      image_digest: ${{ needs.build-compass.outputs.digest }}
-      trivy_severity: HIGH,CRITICAL
-    secrets: inherit
-
   scan-image-beacon-distro:
     name: Scan Beacon Distro Image
     needs: [build-beacon-distro]
@@ -153,19 +113,6 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   # STAGE 4: SIGN AND VERIFY (keyless signing with Sigstore)
   # ═══════════════════════════════════════════════════════════════════════════
-  sign-compass:
-    name: Sign Compass Image
-    needs: [build-compass, scan-image-compass]
-    permissions:
-      packages: write  # attach signature to image
-      id-token: write  # OIDC for keyless signing
-    uses: complytime/org-infra/.github/workflows/reusable_sign_and_verify.yml@main
-    with:
-      image_name: ${{ needs.build-compass.outputs.image }}
-      digest: ${{ needs.build-compass.outputs.digest }}
-      allowed_identity_regex: https://github.com/complytime/org-infra(/.*)?
-    secrets: inherit
-
   sign-beacon-distro:
     name: Sign Beacon Distro Image
     needs: [build-beacon-distro, scan-image-beacon-distro]
@@ -184,7 +131,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   summary:
     name: Pipeline Summary
-    needs: [scan-source, build-compass, build-beacon-distro, scan-image-compass, scan-image-beacon-distro, sign-compass, sign-beacon-distro]
+    needs: [scan-source, build-beacon-distro, scan-image-beacon-distro, sign-beacon-distro]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     permissions:
@@ -193,11 +140,8 @@ jobs:
       - name: Generate Summary
         env:
           R_SRC: ${{ needs.scan-source.result }}
-          R_B1: ${{ needs.build-compass.result }}
           R_B2: ${{ needs.build-beacon-distro.result }}
-          R_S1: ${{ needs.scan-image-compass.result }}
           R_S2: ${{ needs.scan-image-beacon-distro.result }}
-          R_G1: ${{ needs.sign-compass.result }}
           R_G2: ${{ needs.sign-beacon-distro.result }}
         run: |
           icon() { case "$1" in success) echo "✅";; skipped) echo "⏭️";; *) echo "❌";; esac; }
@@ -205,15 +149,14 @@ jobs:
           cat >> "$GITHUB_STEP_SUMMARY" << EOF
           ## 🚀 Image Pipeline Summary
 
-          | Stage | Compass | Beacon Distro |
-          |-------|---------|---------------|
-          | Source Scan | $(icon "$R_SRC") | $(icon "$R_SRC") |
-          | Build | $(icon "$R_B1") | $(icon "$R_B2") |
-          | Image Scan | $(icon "$R_S1") | $(icon "$R_S2") |
-          | Sign | $(icon "$R_G1") | $(icon "$R_G2") |
+          | Stage | Beacon Distro |
+          |-------|---------------|
+          | Source Scan | $(icon "$R_SRC") |
+          | Build | $(icon "$R_B2") |
+          | Image Scan | $(icon "$R_S2") |
+          | Sign | $(icon "$R_G2") |
           EOF
-          if [[ "$R_B1" != "success" && "$R_B1" != "skipped" ]] || \
-             [[ "$R_B2" != "success" && "$R_B2" != "skipped" ]]; then
+          if [[ "$R_B2" != "success" && "$R_B2" != "skipped" ]]; then
             echo "⚠️ **One or more components failed.**" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi

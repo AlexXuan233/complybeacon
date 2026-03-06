@@ -198,15 +198,18 @@ In **Settings** → **Branches** → **main**:
 After publishing, verify images are properly signed:
 
 ```bash
-# Verify GHCR image
-cosign verify ghcr.io/complytime/complytime-compass \
+# Verify GHCR image (beacon-distro)
+cosign verify ghcr.io/complytime/complybeacon-beacon-distro \
   --certificate-identity-regexp='https://github.com/complytime/.*' \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 
-# Verify Quay image
-cosign verify quay.io/continuouscompliance/complytime-compass \
+# Verify Quay image (beacon-distro)
+cosign verify quay.io/continuouscompliance/complytime-beacon-distro \
   --certificate-identity-regexp='https://github.com/complytime/.*' \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+
+# Note: The Compass image is published from a separate repository:
+# ghcr.io/complytime/gemara-content-service
 ```
 
 ## Quick Reference
