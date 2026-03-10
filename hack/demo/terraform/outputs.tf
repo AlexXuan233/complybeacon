@@ -5,5 +5,5 @@ output "dashboard_url" {
 
 output "loki_datasource_uid" {
   description = "UID of the Loki datasource"
-  value       = grafana_data_source.loki.uid
+  value       = data.grafana_data_source.loki.uid
 }

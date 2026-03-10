@@ -10,9 +10,3 @@ variable "grafana_auth" {
   default     = "admin:admin"
   sensitive   = true
 }
-
-variable "loki_url" {
-  description = "Loki server URL"
-  type        = string
-  default     = "http://loki:3100"
-}
