@@ -18,7 +18,6 @@ updates:
   - package-ecosystem: "gomod"
     directories:
       - "/"
-      - "/compass"      # used in complybeacon
       - "/proofwatch"   # used in complybeacon
       - "/truthbeam"    # used in complybeacon
     schedule:

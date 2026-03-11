@@ -137,7 +137,7 @@ err = pw.LogWithSeverity(ctx, evidence, olog.SeverityWarn)
 
 ### 4. Compass
 
-**Purpose**: A centralized lookup service that provides compliance context. It's the source of truth for mapping policies to standards and risk attributes.
+**Purpose**: A centralized lookup service that provides compliance context. It's the source of truth for mapping policies to standards and risk attributes. Compass is maintained as a separate project at [gemara-content-service](https://github.com/complytime/gemara-content-service) and is consumed here as a pre-built container image (`ghcr.io/complytime/gemara-content-service`).
 
 **Key Responsibilities**:
 * Receiving an EnrichmentRequest from `truthbeam`.

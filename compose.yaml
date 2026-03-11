@@ -38,17 +38,17 @@ services:
         /run.sh
 
   compass:
-    build:
-      context: .
-      dockerfile: ./compass/images/Containerfile.compass
+    # replace with local compass image when test, for example localhost/gemara-content-service:local
+    image: ghcr.io/complytime/gemara-content-service:latest
     restart: unless-stopped
     volumes:
-      - ./hack/sampledata:/sampledata:Z
-      - ./hack/demo/config.yaml:/config.yaml:Z
+      # replace mount path with local gemara-content-service repo path
+      # - ./hack/sampledata:/hack/sampledata:Z
+      # - ./hack/demo/config.yaml:/config.yaml:Z
       # Development/Testing purpose
       - ./hack/self-signed-cert/compass.crt:/certs/compass.crt:Z
       - ./hack/self-signed-cert/compass.key:/certs/compass.key:Z
-    command: ["--config", "/config.yaml", "--catalog", "/sampledata/osps.yaml", "--port", "8081"]
+    command: ["--config", "/config.yaml", "--catalog", "/hack/sampledata/osps.yaml", "--port", "8081"]
     ports:
       - "8081:8081"
 
