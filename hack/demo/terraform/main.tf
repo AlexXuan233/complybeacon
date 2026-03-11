@@ -12,24 +12,9 @@ provider "grafana" {
   auth = var.grafana_auth
 }
 
-# Data source configuration
-resource "grafana_data_source" "loki" {
-  type       = "loki"
-  name       = "Loki"
-  url        = var.loki_url
-  is_default = true
-
-  json_data_encoded = jsonencode({})
-
-  lifecycle {
-    # Prevent Terraform from trying to recreate this if it exists
-    prevent_destroy = false
-  }
-}
-
-# Local variables
-locals {
-  loki_ds_uid = grafana_data_source.loki.uid
+# Look up the Loki datasource provisioned by Grafana at startup
+data "grafana_data_source" "loki" {
+  name = "Loki"
 }
 
 # Compliance Evidence Dashboard
@@ -91,13 +76,13 @@ resource "grafana_dashboard" "compliance_evidence" {
         }
         datasource = {
           type = "loki"
-          uid  = grafana_data_source.loki.uid
+          uid  = data.grafana_data_source.loki.uid
         }
         pluginVersion = "11.6.0"
         targets = [{
           datasource = {
             type = "loki"
-            uid  = grafana_data_source.loki.uid
+            uid  = data.grafana_data_source.loki.uid
           }
           editorMode = "code"
           # Count enriched evidence logs (have policy_evaluation_result from truthbeam - signaltometrics logs don't have this)
@@ -149,12 +134,12 @@ resource "grafana_dashboard" "compliance_evidence" {
         }
         datasource = {
           type = "loki"
-          uid  = grafana_data_source.loki.uid
+          uid  = data.grafana_data_source.loki.uid
         }
         targets = [{
           datasource = {
             type = "loki"
-            uid  = grafana_data_source.loki.uid
+            uid  = data.grafana_data_source.loki.uid
           }
           editorMode   = "code"
           # Query enriched evidence logs (have policy_evaluation_result from truthbeam - signaltometrics logs don't have this)
@@ -283,13 +268,13 @@ resource "grafana_dashboard" "compliance_evidence" {
         }
         datasource = {
           type = "loki"
-          uid  = grafana_data_source.loki.uid
+          uid  = data.grafana_data_source.loki.uid
         }
         pluginVersion = "11.6.0"
         targets = [{
           datasource = {
             type = "loki"
-            uid  = grafana_data_source.loki.uid
+            uid  = data.grafana_data_source.loki.uid
           }
           editorMode   = "code"
           # Query enriched evidence logs (have policy_engine_name from truthbeam - signaltometrics logs don't have policy_evaluation_result)
@@ -341,13 +326,13 @@ resource "grafana_dashboard" "compliance_evidence" {
         }
         datasource = {
           type = "loki"
-          uid  = grafana_data_source.loki.uid
+          uid  = data.grafana_data_source.loki.uid
         }
         pluginVersion = "11.6.0"
         targets = [{
           datasource = {
             type = "loki"
-            uid  = grafana_data_source.loki.uid
+            uid  = data.grafana_data_source.loki.uid
           }
           editorMode   = "code"
           # Query enriched evidence logs (have policy_rule_id from truthbeam - signaltometrics logs don't have policy_evaluation_result)
@@ -399,12 +384,12 @@ resource "grafana_dashboard" "compliance_evidence" {
         }
         datasource = {
           type = "loki"
-          uid  = grafana_data_source.loki.uid
+          uid  = data.grafana_data_source.loki.uid
         }
         targets = [{
           datasource = {
             type = "loki"
-            uid  = grafana_data_source.loki.uid
+            uid  = data.grafana_data_source.loki.uid
           }
           editorMode = "code"
           # Query enriched logs: real-time evidence rate per control (uses compliance_control_id from truthbeam when available, otherwise policy_rule_id)
@@ -465,13 +450,13 @@ resource "grafana_dashboard" "compliance_evidence" {
         }
         datasource = {
           type = "loki"
-          uid  = grafana_data_source.loki.uid
+          uid  = data.grafana_data_source.loki.uid
         }
         pluginVersion = "11.6.0"
         targets = [{
           datasource = {
             type = "loki"
-            uid  = grafana_data_source.loki.uid
+            uid  = data.grafana_data_source.loki.uid
           }
           editorMode = "code"
           # Query enriched logs: total evidence count per control (uses policy_rule_id)
@@ -525,12 +510,12 @@ resource "grafana_dashboard" "compliance_evidence" {
         }
         datasource = {
           type = "loki"
-          uid  = local.loki_ds_uid
+          uid  = data.grafana_data_source.loki.uid
         }
         targets = [{
           datasource = {
             type = "loki"
-            uid  = local.loki_ds_uid
+            uid  = data.grafana_data_source.loki.uid
           }
           expr         = "sum by (policy_evaluation_result) (count_over_time({service_name=~\".+\"} | json | policy_evaluation_result=~\".+\" [$__range]))"
           legendFormat = "{{policy_evaluation_result}}"
@@ -646,12 +631,12 @@ resource "grafana_dashboard" "compliance_evidence" {
         }
         datasource = {
           type = "loki"
-          uid  = local.loki_ds_uid
+          uid  = data.grafana_data_source.loki.uid
         }
         targets = [{
           datasource = {
             type = "loki"
-            uid  = local.loki_ds_uid
+            uid  = data.grafana_data_source.loki.uid
           }
           expr    = "sum by (compliance_control_id, policy_rule_id, policy_config_include) (count_over_time({service_name=~\".+\"} | json | policy_config_include=~\".+\" [$__range]))"
           format  = "table"

@@ -46,8 +46,7 @@ hack/demo/
 ### Prerequisites
 
 1. Terraform installed (>= 1.0) - [Download](https://developer.hashicorp.com/terraform/install)
-2. Grafana running and accessible
-3. Loki datasource available
+2. Grafana running and accessible (with Loki datasource provisioned at startup)
 
 ### Local Development - Fast Track
 
@@ -73,7 +72,6 @@ cd hack/demo/terraform
 # Configure credentials
 export TF_VAR_grafana_url="https://grafana.example.com"
 export TF_VAR_grafana_auth="YOUR_API_KEY"
-export TF_VAR_loki_url="http://loki:3100"
 
 # Deploy
 terraform init
@@ -236,9 +234,8 @@ git commit -m "Update dashboard configuration"
 ### Prerequisites
 
 1. Terraform installed (v1.0+)
-2. Grafana instance running and accessible
+2. Grafana instance running and accessible (with Loki datasource provisioned at startup)
 3. Grafana API credentials (admin:password or API key)
-4. Loki instance configured as data source
 
 ### Configuration Methods
 
@@ -247,7 +244,6 @@ git commit -m "Update dashboard configuration"
 ```bash
 export TF_VAR_grafana_url="https://grafana.example.com"
 export TF_VAR_grafana_auth="YOUR_API_KEY"
-export TF_VAR_loki_url="http://loki:3100"
 
 terraform apply
 ```
@@ -258,7 +254,6 @@ terraform apply
 cat > terraform.tfvars <<EOF
 grafana_url  = "https://grafana.example.com"
 grafana_auth = "Bearer YOUR_API_KEY"
-loki_url     = "http://loki:3100"
 EOF
 
 terraform apply
@@ -269,8 +264,7 @@ terraform apply
 ```bash
 terraform apply \
   -var="grafana_url=https://grafana.example.com" \
-  -var="grafana_auth=Bearer YOUR_API_KEY" \
-  -var="loki_url=http://loki:3100"
+  -var="grafana_auth=Bearer YOUR_API_KEY"
 ```
 
 ### Using API Keys (Recommended)
@@ -299,6 +293,11 @@ terraform apply
 Dashboards are defined inline using HCL in `main.tf`:
 
 ```hcl
+# Look up the Loki datasource provisioned by Grafana at startup
+data "grafana_data_source" "loki" {
+  name = "Loki"
+}
+
 resource "grafana_dashboard" "compliance_evidence" {
   overwrite = true
 
@@ -313,7 +312,7 @@ resource "grafana_dashboard" "compliance_evidence" {
         type  = "stat"
         datasource = {
           type = "loki"
-          uid  = grafana_data_source.loki.uid  # Dynamic reference!
+          uid  = data.grafana_data_source.loki.uid  # Dynamic reference!
         }
         targets = [{
           expr = "sum(count_over_time({service_name=~\".+\"} [$__range]))"
@@ -326,7 +325,7 @@ resource "grafana_dashboard" "compliance_evidence" {
 
 **Benefits of Inline HCL:**
 
-- **Dynamic datasource references**: Uses `grafana_data_source.loki.uid` for automatic UID resolution
+- **Dynamic datasource references**: Uses `data.grafana_data_source.loki.uid` for automatic UID resolution
 - **Full version control**: Dashboard config is in HCL, part of your Terraform code
 - **Infrastructure as Code**: Leverage Terraform variables, functions, and conditionals
 - **Multi-environment support**: Easy to parameterize for different environments
@@ -456,14 +455,12 @@ terraform apply -var="environment=prod"
 
 ### 4. Dynamic Datasource References
 
-One of the biggest benefits of inline HCL dashboards:
+One of the biggest benefits of inline HCL dashboards — Terraform looks up the UID of the datasource provisioned by Grafana at startup rather than hardcoding it:
 
 ```hcl
-# Define datasource
-resource "grafana_data_source" "loki" {
-  type = "loki"
+# Look up the datasource provisioned by Grafana at startup
+data "grafana_data_source" "loki" {
   name = "Loki"
-  url  = var.loki_url
 }
 
 # Use in dashboard - automatically gets the correct UID!
@@ -476,7 +473,7 @@ resource "grafana_dashboard" "app" {
       {
         datasource = {
           type = "loki"
-          uid  = grafana_data_source.loki.uid  # Dynamic!
+          uid  = data.grafana_data_source.loki.uid  # Dynamic!
         }
         targets = [{
           expr = "{app=\"myapp\"}"
@@ -487,7 +484,7 @@ resource "grafana_dashboard" "app" {
 }
 ```
 
-If you recreate the datasource, the dashboard automatically gets the new UID!
+Terraform reads the UID assigned by Grafana — no need to manage the datasource lifecycle in Terraform.
 
 ---
 
